@@ -1,190 +1,137 @@
-import { useEffect, useState, useRef} from "react";
+import { useEffect, useState, useRef } from "react";
 import ProfileComponent from "../components/Profile";
 import axios from "axios";
-import { getCurrentSong } from "../../../../be/server/controllers/playerController";
+import "../css/dashboard.css";
 
 function Dashboard() {
-    const [accessToken, setAccessToken] = useState(localStorage.getItem("access_token") || null);
-    const [refreshToken, setRefreshToken] = useState(localStorage.getItem("refresh_token") || null);
-    const [expiresIn, setExpiresIn] = useState(localStorage.getItem("expires_in") || null);
-    const [expiresAt, setExpiresAt] = useState(localStorage.getItem("expires_at") || null);
-    const [currentSongName, setCurrentSongName] = useState(null);
-    const [currentSongArtist, setCurrentSongArtist] = useState(null);
-    const [nextSongName, setNextSongName] = useState(null);
-    const [nextSongArtist, setNextSongArtist] = useState(null);
-    const [previousSongName, setPreviousSongName] = useState(null);
-    const [previousSongArtist, setPreviousSongArtist] = useState(null);
+    //my tokens 
+  const [accessToken, setAccessToken] = useState(localStorage.getItem("access_token") || null);
+  const [refreshToken, setRefreshToken] = useState(localStorage.getItem("refresh_token") || null);
+  const [expiresIn, setExpiresIn] = useState(localStorage.getItem("expires_in") || null);
+  const [expiresAt, setExpiresAt] = useState(localStorage.getItem("expires_at") || null);
 
-    const [profile, setProfile] = useState(null);
+  //key song fields
+  const [currentSongName, setCurrentSongName] = useState(null);
+  const [currentSongArtist, setCurrentSongArtist] = useState(null);
+  const [previousSongName, setPreviousSongName] = useState(null);
+  const [previousSongArtist, setPreviousSongArtist] = useState(null);
+  const [nextSongName, setNextSongName] = useState(null);
+  const [nextSongArtist, setNextSongArtist] = useState(null);
 
-    const [songHolder, setSongHolder] = useState("");
-    // let songHolderChange = false;
-    const [songHolderChange, setSongHolderChange] = useState(0);
+  //imma need this to store prev song (will l8er store in storage as well or db)
+  const prevSongRef = useRef();
 
+  //still cant get the token to refresh auto...so i click button for now 
+  const generateNewAccessToken = async () => {
+    try {
+      const response = await fetch("http://127.0.0.1:6969/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
 
+      const data = await response.json();
+      localStorage.setItem("access_token", data.access_token);
+      localStorage.setItem("expires_in", data.expires_in);
+      localStorage.setItem("expires_at", data.expires_at);
 
-    // Function moved inside component so it can access state setters
-    const generateNewAccessToken = async () => {
-        try {
-            //modifying function so can call our new refresh endpoint (/refresh -> /auth/refresh)
-            const response = await fetch("http://127.0.0.1:6969/auth/refresh", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+      setAccessToken(data.access_token);
+      setExpiresIn(data.expires_in);
+      setExpiresAt(data.expires_at);
 
-            });
-
-            const data = await response.json();
-
-            localStorage.setItem("access_token", data.access_token);
-            localStorage.setItem("expires_in", data.expires_in);
-            localStorage.setItem("expires_at", data.expires_at);
-
-            setAccessToken(data.access_token);
-            setExpiresIn(data.expires_in);
-            setExpiresAt(data.expires_at);
-
-            console.log("New access token:", data.access_token);
-            console.log("Expires in:", data.expires_in);
-            console.log("Expires at:", data.expires_at);
-        } catch (error) {
-            console.error("Error generating new access token:", error);
-        }
-    };
-
-    const viewCurrentSong = async () => {
-        try {
-            const response = await axios.get("http://127.0.0.1:6969/spotify/player/current", {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`
-                }
-            });
-            setCurrentSongName(response.data.curr_title);
-            setCurrentSongArtist(response.data.curr_artist);
-            //experimenting with this for now 
-            setPreviousSongName(currentSongName);
-            setPreviousSongArtist(currentSongArtist);
-        } catch (error) {
-            console.error("Error fetching current song:", error);
-        }
-
-    };
-
-    const viewNextSong = async () => {
-        try {
-            const res = await axios.get("http://127.0.1:6969/spotify/player/next", {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`
-                }
-            });
-            console.log(res.data.nextSongTitle, res.data.nextSongArtist);
-            setNextSongName(res.data.nextSongTitle);
-            setNextSongArtist(res.data.nextSongArtist);
-        } catch (error) {
-            console.error("Error fetching next song:", error);
-        }
-
-        setSongHolderChange(prev => prev + 1);
-        setSongHolder(currentSongName);
-
+      console.log("New access token:", data.access_token);
+    } catch (error) {
+      console.error("Error generating new access token:", error);
     }
+  };
 
+  //whenever current song changes, update prev and next song
+  //i couldnt figure out endpoint to get prev song after experimenting with api for a while, so just store in prevRef lol
+  useEffect(() => {
+    if (!accessToken) return;
 
-//learn more about useRef
-    const prevRef = useRef();
-    useEffect(() => {
-        if (prevRef.current !== undefined) {
-            setPreviousSongName(prevRef.current); 
+    const pollSongs = async () => {
+      try {
+        const currentRes = await axios.get("http://127.0.0.1:6969/spotify/player/current", {
+            //sending header for now l8er will store in cookie/db
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const newCurrentSong = currentRes.data.curr_title;
+        const newCurrentArtist = currentRes.data.curr_artist;
+        //.current is used to store prev song (not actual current song)
+        if (prevSongRef.current && prevSongRef.current !== newCurrentSong) {
+          setPreviousSongName(prevSongRef.current);
+          setPreviousSongArtist(currentSongArtist);
         }
-        prevRef.current = currentSongName; 
-    }, [currentSongName]);
 
-
-    
-    //im having issues with this endpoint
-    //i wont probably even use this endpoint
-    const fetchPreviousSong = async () => {
-        // const timeStampBefore = Date.now();
-        try {
-            const res = await axios.get("http://127.0.1:6969/spotify/player/previous", {
-                headers: {
-                    Authorization: `Bearer ${accessToken}`
-                }
-            });
-            // setPreviousSongName(res.data.previousSongName);
-            // setPreviousSongArtist(res.data.previousSongArtist);
-        } catch (error) {
-            console.error("Error fetching previous song:", error);
-        }
+        setCurrentSongName(newCurrentSong);
+        setCurrentSongArtist(newCurrentArtist);
+        prevSongRef.current = newCurrentSong;
+        //because its a call to be which calls api slight delay
+        const nextRes = await axios.get("http://127.0.0.1:6969/spotify/player/next", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        setNextSongName(nextRes.data.nextSongTitle);
+        setNextSongArtist(nextRes.data.nextSongArtist);
+      } catch (error) {
+        console.error("Error polling songs:", error);
+      }
     };
 
+    pollSongs();
 
+    const intervalId = setInterval(pollSongs, 1000);
+    return () => clearInterval(intervalId);
+  }, [accessToken, currentSongArtist]);
 
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const access_token = urlParams.get("access_token");
-        const refresh_token = urlParams.get("refresh_token");
+  
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const access_token = urlParams.get("access_token");
+    const refresh_token = urlParams.get("refresh_token");
 
-        const tokens = {
-            access: access_token || localStorage.getItem("access_token"),
-            refresh: refresh_token || localStorage.getItem("refresh_token"),
-            expires: localStorage.getItem("expires_in"),
-            expiresAt: localStorage.getItem("expires_at"),
-        };
+    const tokens = {
+      access: access_token || localStorage.getItem("access_token"),
+      refresh: refresh_token || localStorage.getItem("refresh_token"),
+      expires: localStorage.getItem("expires_in"),
+      expiresAt: localStorage.getItem("expires_at"),
+    };
 
+    setAccessToken(tokens.access);
+    setRefreshToken(tokens.refresh);
+    setExpiresIn(tokens.expires);
+    setExpiresAt(tokens.expiresAt);
+  }, []);
 
-        const now = Date.now(); // rn
-        console.log("Current time (ms):", now);
-        console.log("Token expires at (ms):", tokens.expiresAt);
-        // Convert expiresAt to a number (in case it's stored as string)
-        const expiresAt = Number(tokens.expiresAt);
+  return (
+    <div className="dashboard-container">
+      <h1>Dashboard</h1>
 
-        // Check if token is expired
-        const isExpired = now >= expiresAt * 1000;
+      <div style={{ textAlign: "center" }}>
+        <button className="token-button" onClick={generateNewAccessToken}>
+          Generate new access token
+        </button>
+      </div>
 
-        if (isExpired) {
-            console.log("Access token expired, need to refresh");
-        } else {
-            console.log("Access token still valid");
-        }
+      {/* <ProfileComponent /> */}
 
-
-
-        setAccessToken(tokens.access);
-        setRefreshToken(tokens.refresh);
-        setExpiresIn(tokens.expires);
-        setExpiresAt(tokens.expiresAt);
-
-        // window.history.replaceState({}, document.title, "/dashboard");
-
-
-
-    }, []);
-
-
-
-    return (
-        <div>
-            <h1>Dashboard</h1>
-            <p>Access Token: {accessToken}</p>
-            <p>Refresh Token: {refreshToken}</p>
-            <p>Expires In: {expiresIn} seconds</p>
-            <p>Expires At: {expiresAt}</p>
-
-            <button>View current user's playlist</button>
-            <button onClick={generateNewAccessToken}>
-                Generate new access token!
-            </button>
-            <ProfileComponent />
-
-            <p>Current Song: {currentSongName} by {currentSongArtist}</p>
-            <p>Next Song: {nextSongName} by {nextSongArtist}</p>
-            <p>Previous Song: {previousSongName} by {previousSongArtist}</p>
-            <button onClick={viewCurrentSong}>View current song playing!</button>
-            <button onClick={viewNextSong}>View next song</button>
+      <div className="song-bar">
+        <div className="song-section left">
+          <p className="label">Prev</p>
+          <p>{previousSongName || "---"} by {previousSongArtist || "---"}</p>
         </div>
-    );
+
+        <div className="song-section center">
+          <p className="label">Now Playing</p>
+          <p className="current-song">{currentSongName || "Loading..."} by {currentSongArtist || "..."}</p>
+        </div>
+
+        <div className="song-section right">
+          <p className="label">Next</p>
+          <p>{nextSongName || "---"} by {nextSongArtist || "---"}</p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default Dashboard;
