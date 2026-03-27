@@ -9,7 +9,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const login = (req, res) => {
-  const scopes = "playlist-read-private playlist-read-collaborative user-library-read user-read-currently-playing user-read-playback-state";
+  const scopes = "playlist-read-private playlist-read-collaborative user-library-read user-read-currently-playing user-read-playback-state user-read-recently-played";
 
   res.redirect(
     "https://accounts.spotify.com/authorize?" +
@@ -79,7 +79,7 @@ export const refreshToken = async (req, res) => {
     console.log("Refresh response:", response.data);
     //need to return access token and expires in and expires at 
     const { access_token, expires_in} = response.data;
-    let expires_at = Date.now() + expires_in * 3600; 
+    let expires_at = Date.now() + expires_in * 1000;  
     res.json({ access_token, expires_in, expires_at });
   } catch (err) {
     res.status(500).json({ error: "Refresh failed" });
