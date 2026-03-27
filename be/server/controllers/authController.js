@@ -9,7 +9,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export const login = (req, res) => {
-  const scopes = "playlist-read-private playlist-read-collaborative user-library-read user-read-currently-playing user-read-playback-state user-read-recently-played";
+  const scopes = "playlist-read-private playlist-read-collaborative user-library-read user-read-currently-playing user-read-playback-state user-read-recently-played user-top-read";
 
   res.redirect(
     "https://accounts.spotify.com/authorize?" +
