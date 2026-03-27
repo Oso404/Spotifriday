@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef} from "react";
 import ProfileComponent from "../components/Profile";
 import axios from "axios";
+import { getCurrentSong } from "../../../../be/server/controllers/playerController";
 
 function Dashboard() {
     const [accessToken, setAccessToken] = useState(localStorage.getItem("access_token") || null);
@@ -15,6 +16,10 @@ function Dashboard() {
     const [previousSongArtist, setPreviousSongArtist] = useState(null);
 
     const [profile, setProfile] = useState(null);
+
+    const [songHolder, setSongHolder] = useState("");
+    // let songHolderChange = false;
+    const [songHolderChange, setSongHolderChange] = useState(0);
 
 
 
@@ -57,9 +62,13 @@ function Dashboard() {
             });
             setCurrentSongName(response.data.curr_title);
             setCurrentSongArtist(response.data.curr_artist);
+            //experimenting with this for now 
+            setPreviousSongName(currentSongName);
+            setPreviousSongArtist(currentSongArtist);
         } catch (error) {
             console.error("Error fetching current song:", error);
         }
+
     };
 
     const viewNextSong = async () => {
@@ -76,13 +85,40 @@ function Dashboard() {
             console.error("Error fetching next song:", error);
         }
 
+        setSongHolderChange(prev => prev + 1);
+        setSongHolder(currentSongName);
+
     }
 
 
-    const fetchPreviousSong = async () => {
+//learn more about useRef
+    const prevRef = useRef();
+    useEffect(() => {
+        if (prevRef.current !== undefined) {
+            setPreviousSongName(prevRef.current); 
+        }
+        prevRef.current = currentSongName; 
+    }, [currentSongName]);
 
-        
+
+    
+    //im having issues with this endpoint
+    //i wont probably even use this endpoint
+    const fetchPreviousSong = async () => {
+        // const timeStampBefore = Date.now();
+        try {
+            const res = await axios.get("http://127.0.1:6969/spotify/player/previous", {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+            // setPreviousSongName(res.data.previousSongName);
+            // setPreviousSongArtist(res.data.previousSongArtist);
+        } catch (error) {
+            console.error("Error fetching previous song:", error);
+        }
     };
+
 
 
     useEffect(() => {
@@ -115,13 +151,12 @@ function Dashboard() {
 
 
 
-
         setAccessToken(tokens.access);
         setRefreshToken(tokens.refresh);
         setExpiresIn(tokens.expires);
         setExpiresAt(tokens.expiresAt);
 
-        window.history.replaceState({}, document.title, "/dashboard");
+        // window.history.replaceState({}, document.title, "/dashboard");
 
 
 
@@ -148,7 +183,6 @@ function Dashboard() {
             <p>Previous Song: {previousSongName} by {previousSongArtist}</p>
             <button onClick={viewCurrentSong}>View current song playing!</button>
             <button onClick={viewNextSong}>View next song</button>
-            <button onClick={fetchPreviousSong}>View previous song</button>
         </div>
     );
 }

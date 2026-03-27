@@ -44,7 +44,7 @@ export const getNextSong = async (req, res) => {
             }
         );
         //spotify api returns in json form (testing out endpoint in terminal)
-        const queue  = response.data.queue[0]; //only want next song in queue 
+        const queue = response.data.queue[0]; //only want next song in queue 
         const nextSongArtist = queue?.artists[0]?.name || "No next song available rn";
         const nextSongTitle = queue?.name || "No next song available rn";
         res.json({ nextSongArtist: nextSongArtist, nextSongTitle: nextSongTitle });
@@ -53,21 +53,32 @@ export const getNextSong = async (req, res) => {
     }
 }
 
+//this endpoint isnt functioning as i need rn 
 export const getPreviousSong = async (req, res) => {
     const accessToken = req.headers.authorization?.split(" ")[1];
+    const timeStamp = Date.now();
     if (!accessToken) {
         return res.status(401).json({ error: "Access token missing" });
     }
     try {
         const response = await axios.get(
-            "https://api.spotify.com/v1/me/player/recently-played?limit=2",
+            `https://api.spotify.com/v1/me/player/recently-played?limit=2`,
             {
                 headers: {
                     Authorization: `Bearer ${accessToken}`
                 }
             }
         );
-        const recentTracks = response.data.items;
+        const items = response.data.items;
+        if (items.length < 2) {
+            return res.json({ message: "No previous song found" });
+        }
+
+        const previousSong = items[1].track; 
+        res.json({
+            previousSongName: previousSong.name,
+            previousSongArtist: previousSong.artists.map(a => a.name).join(", "),
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
