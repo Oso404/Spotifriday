@@ -21,6 +21,9 @@ function App() {
     }}>
       press to give me permission!
     </button>
+    <button  className="rounded-btn" onClick={() => {
+        window.location.href = "http://127.0.0.1:6969/auth/login"
+    }}>f it manual re-authorization</button>
   </div>
 );
 }
