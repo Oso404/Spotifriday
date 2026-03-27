@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import authRoutes from './routes/authRoutes.js'
 import profileRoutes from './routes/profileRoutes.js'
 import playerRoutes from './routes/playerRoutes.js'
+import timestampRoutes from './routes/timestamp.js'
 
 
 dotenv.config() 
@@ -20,6 +21,7 @@ app.use(
 app.use("/auth", authRoutes) 
 app.use("/spotify/profile", profileRoutes)
 app.use("/spotify/player", playerRoutes)
+app.use("/spotify/timestamp", timestampRoutes)
 
 
 app.listen(port, "127.0.0.1", () => {

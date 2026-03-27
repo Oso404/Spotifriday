@@ -21,7 +21,10 @@ export const getCurrentSong = async (req, res) => {
         const currentSongArtist = data.item.artists[0].name;
         const currentSongTitle = data.item.name;
         const currentSongImage = data.item.album.images[0].url; //think imma use this l8er for fun
-        res.json({ curr_artist: currentSongArtist, curr_title: currentSongTitle, curr_image: currentSongImage });
+        
+        const duration_ms = data.item.duration_ms;
+
+        res.json({ curr_artist: currentSongArtist, curr_title: currentSongTitle, curr_image: currentSongImage, curr_duration: duration_ms });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
