@@ -9,6 +9,10 @@ function Dashboard() {
     const [expiresAt, setExpiresAt] = useState(localStorage.getItem("expires_at") || null);
     const [currentSongName, setCurrentSongName] = useState(null);
     const [currentSongArtist, setCurrentSongArtist] = useState(null);
+    const [nextSongName, setNextSongName] = useState(null);
+    const [nextSongArtist, setNextSongArtist] = useState(null);
+    const [previousSongName, setPreviousSongName] = useState(null);
+    const [previousSongArtist, setPreviousSongArtist] = useState(null);
 
     const [profile, setProfile] = useState(null);
 
@@ -53,13 +57,32 @@ function Dashboard() {
             });
             setCurrentSongName(response.data.curr_title);
             setCurrentSongArtist(response.data.curr_artist);
-        }catch (error) {
+        } catch (error) {
             console.error("Error fetching current song:", error);
         }
     };
 
+    const viewNextSong = async () => {
+        try {
+            const res = await axios.get("http://127.0.1:6969/spotify/player/next", {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`
+                }
+            });
+            console.log(res.data.nextSongTitle, res.data.nextSongArtist);
+            setNextSongName(res.data.nextSongTitle);
+            setNextSongArtist(res.data.nextSongArtist);
+        } catch (error) {
+            console.error("Error fetching next song:", error);
+        }
+
+    }
 
 
+    const fetchPreviousSong = async () => {
+
+        
+    };
 
 
     useEffect(() => {
@@ -82,7 +105,7 @@ function Dashboard() {
         const expiresAt = Number(tokens.expiresAt);
 
         // Check if token is expired
-        const isExpired = now >= expiresAt*1000;
+        const isExpired = now >= expiresAt * 1000;
 
         if (isExpired) {
             console.log("Access token expired, need to refresh");
@@ -98,8 +121,10 @@ function Dashboard() {
         setExpiresIn(tokens.expires);
         setExpiresAt(tokens.expiresAt);
 
-        // Optionally hide tokens from URL
         window.history.replaceState({}, document.title, "/dashboard");
+
+
+
     }, []);
 
 
@@ -119,7 +144,11 @@ function Dashboard() {
             <ProfileComponent />
 
             <p>Current Song: {currentSongName} by {currentSongArtist}</p>
+            <p>Next Song: {nextSongName} by {nextSongArtist}</p>
+            <p>Previous Song: {previousSongName} by {previousSongArtist}</p>
             <button onClick={viewCurrentSong}>View current song playing!</button>
+            <button onClick={viewNextSong}>View next song</button>
+            <button onClick={fetchPreviousSong}>View previous song</button>
         </div>
     );
 }
