@@ -20,7 +20,8 @@ export const getCurrentSong = async (req, res) => {
         const data = await response.json();
         const currentSongArtist = data.item.artists[0].name;
         const currentSongTitle = data.item.name;
-        res.json({ curr_artist: currentSongArtist, curr_title: currentSongTitle });
+        const currentSongImage = data.item.album.images[0].url; //think imma use this l8er for fun
+        res.json({ curr_artist: currentSongArtist, curr_title: currentSongTitle, curr_image: currentSongImage });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -47,7 +48,8 @@ export const getNextSong = async (req, res) => {
         const queue = response.data.queue[0]; //only want next song in queue 
         const nextSongArtist = queue?.artists[0]?.name || "No next song available rn";
         const nextSongTitle = queue?.name || "No next song available rn";
-        res.json({ nextSongArtist: nextSongArtist, nextSongTitle: nextSongTitle });
+        const nextSongImage = queue?.album?.images[0]?.url || null; //store for now
+        res.json({ nextSongArtist: nextSongArtist, nextSongTitle: nextSongTitle, nextSongImage: nextSongImage });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

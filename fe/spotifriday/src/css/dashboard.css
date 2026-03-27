@@ -22,7 +22,7 @@
 .song-bar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   border: 1px solid #ccc;
   border-radius: 10px;
   padding: 20px;
@@ -39,19 +39,55 @@
 }
 
 .song-section.center {
-  text-align: center;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .song-section.right {
   text-align: right;
-}
-
-.song-section p {
-  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
 }
 
 .song-section .label {
   font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.song-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-top: 5px; /* space below the label */
+}
+
+.song-image {
+  width: 60px;         
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-right: 10px;  /* space between image and text */
+}
+
+.song-text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.song-text .song-name {
+  font-weight: bold;
+  font-size: 1em;
+  margin: 0;
+}
+
+.song-text .song-artist {
+  font-size: 0.9em;
+  color: #666;
+  margin: 0;
 }
 
 .song-section .current-song {

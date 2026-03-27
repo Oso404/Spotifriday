@@ -4,24 +4,30 @@ import axios from "axios";
 import "../css/dashboard.css";
 
 function Dashboard() {
-    //my tokens 
+  // my tokens will need to change l8er 
   const [accessToken, setAccessToken] = useState(localStorage.getItem("access_token") || null);
   const [refreshToken, setRefreshToken] = useState(localStorage.getItem("refresh_token") || null);
   const [expiresIn, setExpiresIn] = useState(localStorage.getItem("expires_in") || null);
   const [expiresAt, setExpiresAt] = useState(localStorage.getItem("expires_at") || null);
 
-  //key song fields
+  // song fields for current, prev and next songs
   const [currentSongName, setCurrentSongName] = useState(null);
   const [currentSongArtist, setCurrentSongArtist] = useState(null);
+  const [previousSongImage, setPreviousSongImage] = useState(null);
   const [previousSongName, setPreviousSongName] = useState(null);
   const [previousSongArtist, setPreviousSongArtist] = useState(null);
   const [nextSongName, setNextSongName] = useState(null);
   const [nextSongArtist, setNextSongArtist] = useState(null);
+  const [currentSongImage, setCurrentSongImage] = useState(null);
+  const [nextSongImage, setNextSongImage] = useState(null);
 
-  //imma need this to store prev song (will l8er store in storage as well or db)
-  const prevSongRef = useRef();
+  /*
+  after a hrs of experimenting i coudlnt figure out the whole api thing
+  resorted to href polling for now (may change l8er and use web sockets )
+  */
+  const prevSongRef = useRef({ name: null, artist: null, image: null });
 
-  //still cant get the token to refresh auto...so i click button for now 
+  // Refresh token manually for now
   const generateNewAccessToken = async () => {
     try {
       const response = await fetch("http://127.0.0.1:6969/auth/refresh", {
@@ -44,32 +50,36 @@ function Dashboard() {
     }
   };
 
-  //whenever current song changes, update prev and next song
-  //i couldnt figure out endpoint to get prev song after experimenting with api for a while, so just store in prevRef lol
   useEffect(() => {
     if (!accessToken) return;
 
     const pollSongs = async () => {
       try {
         const currentRes = await axios.get("http://127.0.0.1:6969/spotify/player/current", {
-            //sending header for now l8er will store in cookie/db
           headers: { Authorization: `Bearer ${accessToken}` },
         });
+
         const newCurrentSong = currentRes.data.curr_title;
         const newCurrentArtist = currentRes.data.curr_artist;
-        //.current is used to store prev song (not actual current song)
-        if (prevSongRef.current && prevSongRef.current !== newCurrentSong) {
-          setPreviousSongName(prevSongRef.current);
-          setPreviousSongArtist(currentSongArtist);
+        const currentSongImg = currentRes.data.curr_image;
+
+        if (prevSongRef.current.name && prevSongRef.current.name !== newCurrentSong) {
+          setPreviousSongName(prevSongRef.current.name);
+          setPreviousSongArtist(prevSongRef.current.artist);
+          setPreviousSongImage(prevSongRef.current.image);  
         }
 
         setCurrentSongName(newCurrentSong);
         setCurrentSongArtist(newCurrentArtist);
-        prevSongRef.current = newCurrentSong;
-        //because its a call to be which calls api slight delay
+        setCurrentSongImage(currentSongImg);
+
+        prevSongRef.current = { name: newCurrentSong, artist: newCurrentArtist, image: currentSongImg };
+
         const nextRes = await axios.get("http://127.0.0.1:6969/spotify/player/next", {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
+
+        setNextSongImage(nextRes.data.nextSongImage);
         setNextSongName(nextRes.data.nextSongTitle);
         setNextSongArtist(nextRes.data.nextSongArtist);
       } catch (error) {
@@ -78,28 +88,20 @@ function Dashboard() {
     };
 
     pollSongs();
-
     const intervalId = setInterval(pollSongs, 1000);
     return () => clearInterval(intervalId);
   }, [accessToken, currentSongArtist]);
 
-  
+  // Get tokens from URL or storage
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const access_token = urlParams.get("access_token");
     const refresh_token = urlParams.get("refresh_token");
 
-    const tokens = {
-      access: access_token || localStorage.getItem("access_token"),
-      refresh: refresh_token || localStorage.getItem("refresh_token"),
-      expires: localStorage.getItem("expires_in"),
-      expiresAt: localStorage.getItem("expires_at"),
-    };
-
-    setAccessToken(tokens.access);
-    setRefreshToken(tokens.refresh);
-    setExpiresIn(tokens.expires);
-    setExpiresAt(tokens.expiresAt);
+    setAccessToken(access_token || localStorage.getItem("access_token"));
+    setRefreshToken(refresh_token || localStorage.getItem("refresh_token"));
+    setExpiresIn(localStorage.getItem("expires_in"));
+    setExpiresAt(localStorage.getItem("expires_at"));
   }, []);
 
   return (
@@ -115,19 +117,64 @@ function Dashboard() {
       {/* <ProfileComponent /> */}
 
       <div className="song-bar">
+        {/* Previous Song */}
         <div className="song-section left">
           <p className="label">Prev</p>
-          <p>{previousSongName || "---"} by {previousSongArtist || "---"}</p>
+          {previousSongName ? (
+            <div className="song-row">
+              <img
+                src={previousSongImage || "placeholder.png"}
+                alt={previousSongName}
+                className="song-image"
+              />
+              <div className="song-text">
+                <p className="song-name">{previousSongName}</p>
+                <p className="song-artist">{previousSongArtist || "---"}</p>
+              </div>
+            </div>
+          ) : (
+            <p>---</p>
+          )}
         </div>
 
+        {/* Current Song */}
         <div className="song-section center">
           <p className="label">Now Playing</p>
-          <p className="current-song">{currentSongName || "Loading..."} by {currentSongArtist || "..."}</p>
+          {currentSongName && currentSongImage ? (
+            <div className="song-row">
+              <img
+                src={currentSongImage}
+                alt={currentSongName}
+                className="song-image"
+              />
+              <div className="song-text">
+                <p className="song-name">{currentSongName}</p>
+                <p className="song-artist">{currentSongArtist}</p>
+              </div>
+            </div>
+          ) : (
+            <p>Loading...</p>
+          )}
         </div>
 
+        {/* Next Song */}
         <div className="song-section right">
           <p className="label">Next</p>
-          <p>{nextSongName || "---"} by {nextSongArtist || "---"}</p>
+          {nextSongName && nextSongImage ? (
+            <div className="song-row">
+              <img
+                src={nextSongImage}
+                alt={nextSongName}
+                className="song-image"
+              />
+              <div className="song-text">
+                <p className="song-name">{nextSongName}</p>
+                <p className="song-artist">{nextSongArtist}</p>
+              </div>
+            </div>
+          ) : (
+            <p>---</p>
+          )}
         </div>
       </div>
     </div>
